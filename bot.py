@@ -13,9 +13,10 @@ logger.info("Запуск бота...")
 # Настраиваем API ключи
 TELEGRAM_API_KEY = os.getenv("TELEGRAM_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # URL для вебхука
 
-if not TELEGRAM_API_KEY or not OPENAI_API_KEY:
-    logger.error("Не заданы TELEGRAM_API_KEY или OPENAI_API_KEY. Проверь переменные окружения.")
+if not TELEGRAM_API_KEY or not OPENAI_API_KEY or not WEBHOOK_URL:
+    logger.error("Не заданы TELEGRAM_API_KEY, OPENAI_API_KEY или WEBHOOK_URL. Проверь переменные окружения.")
     exit(1)
 
 openai.api_key = OPENAI_API_KEY
@@ -30,7 +31,7 @@ async def handle_message(update: Update, context) -> None:
     
     try:
         response = openai.Completion.create(
-            engine="text-davinci-003",  # или любой другой подходящий движок
+            engine="text-davinci-003",  # можно выбрать любой другой подходящий движок
             prompt=user_message,
             max_tokens=150
         )
@@ -56,9 +57,13 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Запускаем бота
-    logger.info("Запуск поллинга...")
-    application.run_polling()
+    # Настройка вебхуков
+    logger.info("Установка вебхука на URL")
+    application.run_webhook(
+        listen="0.0.0.0",  # сервер будет слушать все доступные IP-адреса
+        port=int(os.environ.get("PORT", 5000)),  # получаем порт из окружения
+        webhook_url=WEBHOOK_URL  # URL для вебхуков
+    )
 
 if __name__ == '__main__':
     main()
